@@ -2,9 +2,10 @@
 import 'source-map-support/register';
 import * as cdk from '@aws-cdk/core';
 import { Demo1Ec2SimpleInstanceStack } from '../lib/demo1_ec2_simple_instance-stack';
+import { config } from '../config';
 
 const app = new cdk.App();
-new Demo1Ec2SimpleInstanceStack(app, 'Demo1Ec2SimpleInstanceStack', {
+new Demo1Ec2SimpleInstanceStack(app, `${config.instanceName}-Stack`, {
   /* If you don't specify 'env', this stack will be environment-agnostic.
    * Account/Region-dependent features and context lookups will not work,
    * but a single synthesized template can be deployed anywhere. */

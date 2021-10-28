@@ -1,21 +1,22 @@
 import * as cdk from "@aws-cdk/core";
 import * as ec2 from "@aws-cdk/aws-ec2"; // import ec2 library
 import * as iam from "@aws-cdk/aws-iam"; // import iam library for permissions
-import { KeyPair } from 'cdk-ec2-key-pair'
+import { KeyPair } from "cdk-ec2-key-pair";
+import { config } from "../config";
+import { readFileSync } from "fs";
+import * as path from 'path'
 
-require("dotenv").config();
-
-const config = {
+const awsConfig = {
   env: {
-    account: process.env.AWS_ACCOUNT_NUMBER,
-    region: process.env.AWS_REGION,
+    account: config.account,
+    region: config.region,
   },
 };
 
 export class Demo1Ec2SimpleInstanceStack extends cdk.Stack {
   constructor(scope: cdk.Construct, id: string, props?: cdk.StackProps) {
     // its important to add our env config here otherwise CDK won't know our AWS account number
-    super(scope, id, { ...props, env: config.env });
+    super(scope, id, { ...props,  ...awsConfig });
 
     // Get the default VPC. This is the network where your instance will be provisioned
     // All activated regions in AWS have a default vpc.
@@ -27,17 +28,21 @@ export class Demo1Ec2SimpleInstanceStack extends cdk.Stack {
     // instance can or can not do
     const role = new iam.Role(
       this,
-      "simple-instance-1-role", // this is a unique id that will represent this resource in a Cloudformation template
+      "role", // this is a unique id that will represent this resource in a Cloudformation template
       { assumedBy: new iam.ServicePrincipal("ec2.amazonaws.com") }
     );
 
     // lets create a security group for our instance
     // A security group acts as a virtual firewall for your instance to control inbound and outbound traffic.
-    const securityGroup = new ec2.SecurityGroup(this, "simple-instance-sg", {
-      vpc: defaultVpc,
-      allowAllOutbound: true, // will let your instance send outboud traffic
-      securityGroupName: "simple-instance-1-sg",
-    });
+    const securityGroup = new ec2.SecurityGroup(
+      this,
+      `sg`,
+      {
+        vpc: defaultVpc,
+        allowAllOutbound: true, // will let your instance send outboud traffic
+        securityGroupName: `sg`,
+      }
+    );
 
     // lets use the security group to allow inbound traffic on specific ports
     securityGroup.addIngressRule(
@@ -48,28 +53,27 @@ export class Demo1Ec2SimpleInstanceStack extends cdk.Stack {
 
     securityGroup.addIngressRule(
       ec2.Peer.anyIpv4(),
-      ec2.Port.tcp(80),
-      "Allows HTTP access from Internet"
+      ec2.Port.tcp(880),
+      "Allows Http Webserver access from Internet"
     );
 
     securityGroup.addIngressRule(
       ec2.Peer.anyIpv4(),
-      ec2.Port.tcp(443),
-      "Allows HTTPS access from Internet"
+      ec2.Port.tcp(4443),
+      "Allows HTTPS Webserver access from Internet"
     );
 
-
     // --- CREATE KEY
-    const key = new KeyPair(this, `${id}-ec2key`, {
-      name: `${id}-ec2key`,
+    const key = new KeyPair(this, `${config.instanceName}-ec2key`, {
+      name: `${config.instanceName}-ec2key`,
     });
 
     // Finally lets provision our ec2 instance
-    const instance = new ec2.Instance(this, "simple-instance", {
+    const instance = new ec2.Instance(this, config.instanceName, {
       vpc: defaultVpc,
       role: role,
       securityGroup: securityGroup,
-      instanceName: "simple-instance-1",
+      instanceName: config.instanceName,
       instanceType: ec2.InstanceType.of(
         // t2.micro has free tier usage in aws
         ec2.InstanceClass.T2,
@@ -78,12 +82,17 @@ export class Demo1Ec2SimpleInstanceStack extends cdk.Stack {
       machineImage: ec2.MachineImage.latestAmazonLinux({
         generation: ec2.AmazonLinuxGeneration.AMAZON_LINUX_2,
       }),
-      keyName: key.keyPairName
+      keyName: key.keyPairName,
     });
+
+    // 👇 load contents of initialization script
+    const userDataScript = readFileSync(path.resolve(__dirname, "../initialize.sh"), "utf8");
+    // 👇 add the User Data script to the Instance
+    instance.addUserData(userDataScript);
 
     // cdk lets us output prperties of the resources we create after they are created
     // we want the ip address of this new instance so we can ssh into it later
-    new cdk.CfnOutput(this, "simple-instance-output", {
+    new cdk.CfnOutput(this, `${config.instanceName}-output`, {
       value: instance.instancePublicIp,
     });
   }
