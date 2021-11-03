@@ -7,4 +7,13 @@ If you are comfortable with AWS you could start directly with the high complexit
 ## Requirements
 
 Before we start we need to install AWS CLI, and after we should create IAM user with AdministratorAccess permissions in the AWS Console (IAM) and configure the user credentials in your computer using aws configure command.
-For all demos, we are going to use TypeScript to provision cloud resources using CDK. Therefore make sure you have `NodeJS (>= 12)` installed on your computer as well. NodeJS installation is going to install the Node Package Manager(npm) which is needed to install CDK toolkit.
+
+For all demos, we are going to use `TypeScript` to provision cloud resources using `CDK`. Therefore make sure you have `NodeJS (>= 12)` installed on your computer as well. NodeJS installation is going to install the Node Package Manager(npm) which is needed to install CDK toolkit.
+
+### Installing aws-cdk
+
+To install just run the next command
+
+```bash
+npm install -g aws-cdk
+```
